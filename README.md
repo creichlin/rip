@@ -1,2 +1,2 @@
-# rip
-REST in peace - layer for http APIs in golang
+rip (rest in peace)
+===================
