@@ -165,6 +165,7 @@ func DocHandler(rip *rip) Handler {
 			li := map[string]interface{}{}
 			li["href"] = route.Template() + route.QueryTemplate()
 			li["method"] = route.Method()
+			li["description"] = route.doc
 
 			parameters := []interface{}{}
 
