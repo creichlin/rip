@@ -82,6 +82,7 @@ func (r *Route) Handler(handler Handler, doc string) {
 		r.errors = append(r.errors, &RouteMissingMethodError{r})
 	}
 	r.handler = handler
+	r.doc = doc
 	r.rip.routes = append(r.rip.routes, r)
 }
 
