@@ -44,3 +44,5 @@ func (f *queryParameter) Name() string {
 func (f *queryParameter) Doc() string {
 	return f.doc
 }
+
+type Validation interface{}

@@ -8,6 +8,8 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"github.com/asaskevich/govalidator"
+	"github.com/mitchellh/mapstructure"
 )
 
 type Request struct {
@@ -75,6 +77,21 @@ func createParseBodyHandler(nextHandler Handler) Handler {
 	}
 }
 
+func createValidationHandler(nextHandler Handler) Handler {
+	return func(request *Request, response *Response) {
+
+		result, err := govalidator.ValidateStruct(request.route.validation)
+		if err != nil {
+			fmt.Printf("validation handler %v\n", err)
+			response.StatusCode = http.StatusBadRequest
+			response.Data = map[string]string{"error": err.Error()}
+			return
+		}
+		println("Handler createValidationHandler", result)
+		nextHandler(request, response)
+	}
+}
+
 func createResponseWriter(nextHandler Handler) Handler {
 	return func(request *Request, response *Response) {
 		nextHandler(request, response)
@@ -112,7 +129,9 @@ func createHandlerWrapper(route *Route) func(http.ResponseWriter, *http.Request)
 		createResponseWriter(
 			createParseBodyHandler(
 				createParseVarsHandler(
-					route.handler,
+					createValidationHandler(
+						route.handler,
+					),
 				),
 			),
 		)(request, response)
