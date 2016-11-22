@@ -13,14 +13,14 @@ import (
 type Request struct {
 	variables   map[string]string
 	Data        interface{}
-	httpRequest *http.Request
+	HttpRequest *http.Request
 	route       *Route
 }
 
 type Response struct {
 	StatusCode   int
 	Data         interface{}
-	httpResponse http.ResponseWriter
+	HttpResponse http.ResponseWriter
 }
 
 func (r *Request) GetVar(name string) (string, error) {
@@ -49,12 +49,12 @@ func createParseVarsHandler(nextHandler Handler) Handler {
 	return func(request *Request, response *Response) {
 		request.variables = map[string]string{}
 
-		for k, v := range mux.Vars(request.httpRequest) {
+		for k, v := range mux.Vars(request.HttpRequest) {
 			request.variables[k] = v
 		}
 
 		for _, v := range request.route.queryParameters {
-			request.variables[v.name] = request.httpRequest.URL.Query().Get(v.name)
+			request.variables[v.name] = request.HttpRequest.URL.Query().Get(v.name)
 		}
 		nextHandler(request, response)
 	}
@@ -62,8 +62,8 @@ func createParseVarsHandler(nextHandler Handler) Handler {
 
 func createParseBodyHandler(nextHandler Handler) Handler {
 	return func(request *Request, response *Response) {
-		contentType := request.httpRequest.Header.Get("Content-Type")
-		data, err := parseData(contentType, request.httpRequest.Body)
+		contentType := request.HttpRequest.Header.Get("Content-Type")
+		data, err := parseData(contentType, request.HttpRequest.Body)
 		if err != nil {
 			fmt.Printf("parse vars handler %v\n", err)
 			response.StatusCode = http.StatusBadRequest
@@ -80,17 +80,17 @@ func createResponseWriter(nextHandler Handler) Handler {
 		nextHandler(request, response)
 
 		// force all answers to be json for now
-		response.httpResponse.Header().Set("Content-Type", "application/json; charset=UTF-8")
+		response.HttpResponse.Header().Set("Content-Type", "application/json; charset=UTF-8")
 
 		jsonData, err := json.Marshal(response.Data)
 		if err != nil {
-			response.httpResponse.WriteHeader(http.StatusInternalServerError)
-			response.httpResponse.Write([]byte(`{"response": "internal server error"}`))
+			response.HttpResponse.WriteHeader(http.StatusInternalServerError)
+			response.HttpResponse.Write([]byte(`{"response": "internal server error"}`))
 			log.Printf("failed to marshal response %v, %v", response.Data, err)
 			return
 		}
-		response.httpResponse.WriteHeader(response.StatusCode)
-		_, err = response.httpResponse.Write(jsonData)
+		response.HttpResponse.WriteHeader(response.StatusCode)
+		_, err = response.HttpResponse.Write(jsonData)
 		if err != nil {
 			log.Printf("failed to write response for request %v, %v", request.route.Template(), err)
 		}
@@ -100,12 +100,12 @@ func createResponseWriter(nextHandler Handler) Handler {
 func createHandlerWrapper(route *Route) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		request := &Request{
-			httpRequest: r,
+			HttpRequest: r,
 			route:       route,
 		}
 
 		response := &Response{
-			httpResponse: w,
+			HttpResponse: w,
 			StatusCode:   http.StatusOK,
 		}
 
