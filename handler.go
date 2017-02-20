@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"reflect"
 	"strings"
 )
 
@@ -63,7 +64,7 @@ func createParseVarsHandler(nextHandler Handler) Handler {
 func createParseBodyHandler(nextHandler Handler) Handler {
 	return func(request *Request, response *Response) {
 		contentType := request.HttpRequest.Header.Get("Content-Type")
-		data, err := parseData(contentType, request.HttpRequest.Body)
+		data, err := parseData(contentType, request.route.target, request.HttpRequest.Body)
 		if err != nil {
 			fmt.Printf("parse vars handler %v\n", err)
 			response.StatusCode = http.StatusBadRequest
@@ -119,19 +120,24 @@ func createHandlerWrapper(route *Route) func(http.ResponseWriter, *http.Request)
 	}
 }
 
-func parseData(contentType string, data io.Reader) (interface{}, error) {
+func parseData(contentType string, targetType interface{}, data io.Reader) (interface{}, error) {
 	ct := removeMimeVendor(contentType)
 	ct = removeMimeEncoding(ct)
 
 	if ct == "application/json" {
-		decoder := json.NewDecoder(data)
-		mapData := map[string]interface{}{}
+		if targetType == nil {
+			return nil, fmt.Errorf("Request does not accept a body, %v", targetType)
+		}
 
-		err := decoder.Decode(&mapData)
+		targetData := reflect.New(reflect.TypeOf(targetType)).Interface()
+
+		decoder := json.NewDecoder(data)
+		err := decoder.Decode(&targetData)
+
 		if err != nil {
 			return nil, err
 		}
-		return mapData, nil
+		return targetData, nil
 	} else if ct == "" {
 		return "", nil
 	}

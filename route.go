@@ -9,6 +9,7 @@ type Route struct {
 	rip             *rip
 	method          string
 	doc             string
+	target          interface{}
 	path            []PathElement
 	parameters      []Parameter
 	queryParameters []*queryParameter
@@ -30,6 +31,11 @@ func (r Route) Param(name string, doc string) *Route {
 	}
 	r.parameters = append(r.parameters, qp)
 	r.queryParameters = append(r.queryParameters, qp)
+	return &r
+}
+
+func (r Route) Target(target interface{}) *Route {
+	r.target = target
 	return &r
 }
 
