@@ -13,15 +13,18 @@ import (
 func TestHTTPJsonData(t *testing.T) {
 	var result interface{}
 	api := rip.NewRIP()
-	api.Path("foo").GET().Handler(func(req *rip.Request, resp *rip.Response) {
-		result = fmt.Sprintf("%#v", req.Data)
-	}, "")
-	api.Path("foo").POST().Handler(func(req *rip.Request, resp *rip.Response) {
-		result = fmt.Sprintf("%#v", req.Data)
-	}, "")
-	api.Path("foo").PUT().Handler(func(req *rip.Request, resp *rip.Response) {
-		result = fmt.Sprintf("%#v", req.Data)
-	}, "")
+	api.Path("foo").GET().Handler(http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+		data := req.Context().Value("rip-data")
+		result = fmt.Sprintf("%#v", data)
+	}), "")
+	api.Path("foo").POST().Handler(http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+		data := req.Context().Value("rip-data")
+		result = fmt.Sprintf("%#v", data)
+	}), "")
+	api.Path("foo").PUT().Handler(http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+		data := req.Context().Value("rip-data")
+		result = fmt.Sprintf("%#v", data)
+	}), "")
 	handler, err := api.RootHandler()
 	if err != nil {
 		t.Errorf("erroneous route %v", err)

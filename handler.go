@@ -1,6 +1,7 @@
 package rip
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/mux"
@@ -12,103 +13,110 @@ import (
 )
 
 type Request struct {
-	variables   map[string]string
-	Data        interface{}
-	HttpRequest *http.Request
-	route       *Route
+	Data  interface{}
+	route *Route
 }
 
 type Response struct {
-	StatusCode   int
-	Data         interface{}
-	HttpResponse http.ResponseWriter
+	StatusCode int
+	Data       interface{}
 }
 
-func (r *Request) GetVar(name string) (string, error) {
-	val, exists := r.variables[name]
+type Variables map[string]string
+
+func (v Variables) GetVar(name string) (string, error) {
+	val, exists := v[name]
 	if !exists {
 		return "", fmt.Errorf("Variable %v not declared in route", name)
 	}
 	return val, nil
 }
 
-func (r *Request) MustGetVar(name string) string {
-	val, err := r.GetVar(name)
+func (v Variables) MustGetVar(name string) string {
+	val, err := v.GetVar(name)
 	if err != nil {
 		panic(err)
 	}
 	return val
 }
 
-func (r *Request) NumVars() int {
-	return len(r.variables)
+func (v Variables) NumVars() int {
+	return len(v)
 }
 
 type Handler func(request *Request, response *Response)
 
-func createParseVarsHandler(nextHandler Handler) Handler {
-	return func(request *Request, response *Response) {
-		request.variables = map[string]string{}
+func createParseVarsHandler(nextHandler http.Handler) http.HandlerFunc {
+	return func(response http.ResponseWriter, request *http.Request) {
+		variables := Variables{}
 
-		for k, v := range mux.Vars(request.HttpRequest) {
-			request.variables[k] = v
+		for k, v := range mux.Vars(request) {
+			variables[k] = v
 		}
 
-		for _, v := range request.route.queryParameters {
-			request.variables[v.name] = request.HttpRequest.URL.Query().Get(v.name)
+		route := request.Context().Value("rip-route").(*Route)
+
+		for _, v := range route.queryParameters {
+			variables[v.name] = request.URL.Query().Get(v.name)
 		}
-		nextHandler(request, response)
+
+		nextHandler.ServeHTTP(response,
+			request.WithContext(context.WithValue(request.Context(), "rip-variables", variables)))
 	}
 }
 
-func createParseBodyHandler(nextHandler Handler) Handler {
-	return func(request *Request, response *Response) {
-		contentType := request.HttpRequest.Header.Get("Content-Type")
-		data, err := parseData(contentType, request.route.target, request.HttpRequest.Body)
+// if content type is application/json and request body is valid json
+// parse it and store it in a new instance of targetType that got
+// defined in the route and store it in the context
+func createParseBodyHandler(nextHandler http.Handler) http.HandlerFunc {
+	return func(response http.ResponseWriter, request *http.Request) {
+		contentType := request.Header.Get("Content-Type")
+
+		route := request.Context().Value("rip-route").(*Route)
+
+		fmt.Printf("Route target is %T\n", route.target)
+
+		data, err := parseData(contentType, route.target, request.Body)
 		if err != nil {
-			fmt.Printf("parse vars handler %v\n", err)
-			response.StatusCode = http.StatusBadRequest
-			response.Data = map[string]string{"error": err.Error()}
+			log.Printf("parse vars handler %v", err)
+			response.WriteHeader(http.StatusBadRequest)
+			response.Write([]byte(fmt.Sprintf("Error parsing request body, %v", err)))
 			return
 		}
-		request.Data = data
-		nextHandler(request, response)
+		nextHandler.ServeHTTP(response,
+			request.WithContext(context.WithValue(request.Context(), "rip-body", data)))
 	}
 }
 
-func createResponseWriter(nextHandler Handler) Handler {
-	return func(request *Request, response *Response) {
-		nextHandler(request, response)
+func createResponseWriter(nextHandler http.Handler) http.HandlerFunc {
+	return func(response http.ResponseWriter, request *http.Request) {
+		ripResponse := &Response{
+			StatusCode: http.StatusOK,
+		}
+		nextHandler.ServeHTTP(response,
+			request.WithContext(context.WithValue(request.Context(), "rip-response", response)))
 
 		// force all answers to be json for now
-		response.HttpResponse.Header().Set("Content-Type", "application/json; charset=UTF-8")
+		response.Header().Set("Content-Type", "application/json; charset=UTF-8")
 
-		jsonData, err := json.Marshal(response.Data)
+		jsonData, err := json.Marshal(ripResponse.Data)
 		if err != nil {
-			response.HttpResponse.WriteHeader(http.StatusInternalServerError)
-			response.HttpResponse.Write([]byte(`{"response": "internal server error"}`))
-			log.Printf("failed to marshal response %v, %v", response.Data, err)
+			response.WriteHeader(http.StatusInternalServerError)
+			response.Write([]byte(`{"response": "internal server error"}`))
+			log.Printf("failed to marshal response %v, %v", ripResponse.Data, err)
 			return
 		}
-		response.HttpResponse.WriteHeader(response.StatusCode)
-		_, err = response.HttpResponse.Write(jsonData)
+		response.WriteHeader(ripResponse.StatusCode)
+		_, err = response.Write(jsonData)
 		if err != nil {
-			log.Printf("failed to write response for request %v, %v", request.route.Template(), err)
+			route := request.Context().Value("rip-route").(*Route)
+			log.Printf("failed to write response for request %v, %v", route.Template(), err)
 		}
 	}
 }
 
 func createHandlerWrapper(route *Route) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		request := &Request{
-			HttpRequest: r,
-			route:       route,
-		}
-
-		response := &Response{
-			HttpResponse: w,
-			StatusCode:   http.StatusOK,
-		}
 
 		createResponseWriter(
 			createParseBodyHandler(
@@ -116,7 +124,7 @@ func createHandlerWrapper(route *Route) func(http.ResponseWriter, *http.Request)
 					route.handler,
 				),
 			),
-		)(request, response)
+		)(w, r.WithContext(context.WithValue(r.Context(), "rip-route", route)))
 	}
 }
 
@@ -126,6 +134,7 @@ func parseData(contentType string, targetType interface{}, data io.Reader) (inte
 
 	if ct == "application/json" {
 		if targetType == nil {
+
 			return nil, fmt.Errorf("Request does not accept a body, %v", targetType)
 		}
 

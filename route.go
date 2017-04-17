@@ -1,6 +1,8 @@
 package rip
 
 import (
+	"fmt"
+	"net/http"
 	"path"
 	"strings"
 )
@@ -13,7 +15,7 @@ type Route struct {
 	path            []PathElement
 	parameters      []Parameter
 	queryParameters []*queryParameter
-	handler         Handler
+	handler         http.Handler
 	errors          []error
 }
 
@@ -83,7 +85,7 @@ func (r *Route) Do(subcall func(*Route)) *Route {
 	return r
 }
 
-func (r *Route) Handler(handler Handler, doc string) {
+func (r *Route) Handler(handler http.Handler, doc string) {
 	if r.method == "" {
 		r.errors = append(r.errors, &RouteMissingMethodError{r})
 	}

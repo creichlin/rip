@@ -2,10 +2,11 @@ package rip
 
 import (
 	"fmt"
+	"net/http"
 	"testing"
 )
 
-var dummyHandler = func(q *Request, n *Response) {}
+var dummyHandler http.HandlerFunc = func(n http.ResponseWriter, r *http.Request) {}
 
 func TestInspectRoutes(t *testing.T) {
 	rip := NewRIP()

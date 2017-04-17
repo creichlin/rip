@@ -15,18 +15,15 @@ type varTest struct {
 }
 
 func TestHTTPVarData(t *testing.T) {
-	var result *rip.Request
+	var result *http.Request
+	reqHandler := http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+		result = req
+	})
 	api := rip.NewRIP()
 	api.Path("foo").Var("bar", "bardoc").GET().Do(func(api *rip.Route) {
-		api.Handler(func(req *rip.Request, resp *rip.Response) {
-			result = req
-		}, "")
-		api.Path("param").Param("baz", "bazdoc").Handler(func(req *rip.Request, resp *rip.Response) {
-			result = req
-		}, "")
-		api.Var("baz", "bazdoc").Handler(func(req *rip.Request, resp *rip.Response) {
-			result = req
-		}, "")
+		api.Handler(reqHandler, "")
+		api.Path("param").Param("baz", "bazdoc").Handler(reqHandler, "")
+		api.Var("baz", "bazdoc").Handler(reqHandler, "")
 	})
 
 	tests := []varTest{
@@ -47,6 +44,7 @@ func TestHTTPVarData(t *testing.T) {
 	url := server.URL
 
 	for _, test := range tests {
+		variables := result.Context().Value("rip-variables").(rip.Variables)
 		req, _ := http.NewRequest("GET", url+test.url, nil)
 		_, err = http.DefaultClient.Do(req)
 
@@ -54,13 +52,13 @@ func TestHTTPVarData(t *testing.T) {
 			t.Errorf("failed request, %v", err)
 		}
 
-		if result.NumVars() != len(test.vars) {
-			t.Errorf("expected number of vars to be %v but was %v", len(test.vars), result.NumVars())
+		if variables.NumVars() != len(test.vars) {
+			t.Errorf("expected number of vars to be %v but was %v", len(test.vars), variables.NumVars())
 			continue
 		}
 
 		for xVar, xVal := range test.vars {
-			val, _ := result.GetVar(xVar)
+			val, _ := variables.GetVar(xVar)
 			if val != xVal {
 				t.Errorf("expected %v to be %v but was %v", xVar, xVal, val)
 				continue

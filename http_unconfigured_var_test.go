@@ -8,14 +8,15 @@ import (
 )
 
 func TestHTTPUnconfiguredVarData(t *testing.T) {
-	varTryHandler := func(req *rip.Request, resp *rip.Response) {
+	varTryHandler := http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+		vars := req.Context().Value("rip-variables").(rip.Variables)
 		for _, varr := range []string{"123", "boo", "  ", "-23_"} {
-			_, err := req.GetVar(varr)
+			_, err := vars.GetVar(varr)
 			if err == nil {
 				t.Errorf("Could read undefined var %v", varr)
 			}
 		}
-	}
+	})
 
 	api := rip.NewRIP()
 	api.Path("foo").Var("bar", "bardoc").GET().Do(func(api *rip.Route) {
