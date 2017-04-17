@@ -1,7 +1,6 @@
 package rip
 
 import (
-	"fmt"
 	"net/http"
 	"path"
 	"strings"

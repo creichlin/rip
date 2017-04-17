@@ -12,11 +12,6 @@ import (
 	"strings"
 )
 
-type Request struct {
-	Data  interface{}
-	route *Route
-}
-
 type Response struct {
 	StatusCode int
 	Data       interface{}
@@ -43,8 +38,6 @@ func (v Variables) MustGetVar(name string) string {
 func (v Variables) NumVars() int {
 	return len(v)
 }
-
-type Handler func(request *Request, response *Response)
 
 func createParseVarsHandler(nextHandler http.Handler) http.HandlerFunc {
 	return func(response http.ResponseWriter, request *http.Request) {
@@ -74,13 +67,11 @@ func createParseBodyHandler(nextHandler http.Handler) http.HandlerFunc {
 
 		route := request.Context().Value("rip-route").(*Route)
 
-		fmt.Printf("Route target is %T\n", route.target)
-
 		data, err := parseData(contentType, route.target, request.Body)
 		if err != nil {
 			log.Printf("parse vars handler %v", err)
 			response.WriteHeader(http.StatusBadRequest)
-			response.Write([]byte(fmt.Sprintf("Error parsing request body, %v", err)))
+			response.Write([]byte(fmt.Sprintf("Error parsing request body, %v", err))) // nolint: errcheck
 			return
 		}
 		nextHandler.ServeHTTP(response,
@@ -102,7 +93,7 @@ func createResponseWriter(nextHandler http.Handler) http.HandlerFunc {
 		jsonData, err := json.Marshal(ripResponse.Data)
 		if err != nil {
 			response.WriteHeader(http.StatusInternalServerError)
-			response.Write([]byte(`{"response": "internal server error"}`))
+			response.Write([]byte(`{"response": "internal server error"}`)) // nolint: errcheck
 			log.Printf("failed to marshal response %v, %v", ripResponse.Data, err)
 			return
 		}
@@ -171,8 +162,8 @@ func removeMimeVendor(ct string) string {
 	return ct
 }
 
-func DocHandler(rip *rip) Handler {
-	return func(request *Request, response *Response) {
+func DocHandler(rip *rip) http.Handler {
+	return http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
 		resp := map[string]interface{}{}
 		links := []map[string]interface{}{}
 
@@ -196,6 +187,6 @@ func DocHandler(rip *rip) Handler {
 		}
 
 		resp["links"] = links
-		response.Data = resp
-	}
+		request.Context().Value("rip-response").(*Response).Data = resp
+	})
 }

@@ -11,18 +11,18 @@ import (
 )
 
 func TestHTTPJsonData(t *testing.T) {
-	var result interface{}
+	result := ""
 	api := rip.NewRIP()
-	api.Path("foo").GET().Handler(http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-		data := req.Context().Value("rip-data")
+	api.Path("foo").GET().Target(map[string]interface{}{}).Handler(http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+		data := req.Context().Value("rip-body")
 		result = fmt.Sprintf("%#v", data)
 	}), "")
-	api.Path("foo").POST().Handler(http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-		data := req.Context().Value("rip-data")
+	api.Path("foo").POST().Target(map[string]interface{}{}).Handler(http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+		data := req.Context().Value("rip-body")
 		result = fmt.Sprintf("%#v", data)
 	}), "")
-	api.Path("foo").PUT().Handler(http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-		data := req.Context().Value("rip-data")
+	api.Path("foo").PUT().Target(map[string]interface{}{}).Handler(http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+		data := req.Context().Value("rip-body")
 		result = fmt.Sprintf("%#v", data)
 	}), "")
 	handler, err := api.RootHandler()
@@ -40,13 +40,13 @@ func TestHTTPJsonData(t *testing.T) {
 		result      interface{}
 	}{
 		{"GET", "", "", `""`},
-		{"GET", "application/json", `{"foo": "bar"}`, `map[string]interface {}{"foo":"bar"}`},
-		{"POST", "application/json", `{"foo": "bar"}`, `map[string]interface {}{"foo":"bar"}`},
-		{"PUT", "application/json", `{"foo": "bar"}`, `map[string]interface {}{"foo":"bar"}`},
-		{"GET", "application/vnd.x.y+json", `{"foo": "bar"}`, `map[string]interface {}{"foo":"bar"}`},
-		{"GET", "application/json", `{"föö": "bär"}`, `map[string]interface {}{"föö":"bär"}`},
-		{"GET", "application/json; charset=utf-8", `{"föö": "bär"}`, `map[string]interface {}{"föö":"bär"}`},
-		{"GET", "application/json; charset=iso-8859-1", `{"föö": "bär"}`, `map[string]interface {}{"föö":"bär"}`},
+		{"GET", "application/json", `{"foo": "bar"}`, `&map[string]interface {}{"foo":"bar"}`},
+		{"POST", "application/json", `{"foo": "bar"}`, `&map[string]interface {}{"foo":"bar"}`},
+		{"PUT", "application/json", `{"foo": "bar"}`, `&map[string]interface {}{"foo":"bar"}`},
+		{"GET", "application/vnd.x.y+json", `{"foo": "bar"}`, `&map[string]interface {}{"foo":"bar"}`},
+		{"GET", "application/json", `{"föö": "bär"}`, `&map[string]interface {}{"föö":"bär"}`},
+		{"GET", "application/json; charset=utf-8", `{"föö": "bär"}`, `&map[string]interface {}{"föö":"bär"}`},
+		{"GET", "application/json; charset=iso-8859-1", `{"föö": "bär"}`, `&map[string]interface {}{"föö":"bär"}`},
 	}
 
 	for _, test := range tests {
@@ -57,7 +57,7 @@ func TestHTTPJsonData(t *testing.T) {
 
 		request, _ := http.NewRequest(test.method, url+"/foo", body)
 		request.Header.Set("Content-Type", test.contentType)
-		result = nil
+		result = ""
 		_, _ = http.DefaultClient.Do(request)
 		if result != test.result {
 			t.Errorf("expected data to be %v but was %v\n%v", test.result, result, test)

@@ -44,9 +44,9 @@ func TestHTTPVarData(t *testing.T) {
 	url := server.URL
 
 	for _, test := range tests {
-		variables := result.Context().Value("rip-variables").(rip.Variables)
 		req, _ := http.NewRequest("GET", url+test.url, nil)
 		_, err = http.DefaultClient.Do(req)
+		variables := result.Context().Value("rip-variables").(rip.Variables)
 
 		if err != nil {
 			t.Errorf("failed request, %v", err)
