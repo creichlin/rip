@@ -12,7 +12,7 @@ import (
 	"strings"
 )
 
-type Response struct {
+type RIPResponse struct {
 	StatusCode int
 	Data       interface{}
 }
@@ -81,11 +81,11 @@ func createParseBodyHandler(nextHandler http.Handler) http.HandlerFunc {
 
 func createResponseWriter(nextHandler http.Handler) http.HandlerFunc {
 	return func(response http.ResponseWriter, request *http.Request) {
-		ripResponse := &Response{
+		ripResponse := &RIPResponse{
 			StatusCode: http.StatusOK,
 		}
 		nextHandler.ServeHTTP(response,
-			request.WithContext(context.WithValue(request.Context(), "rip-response", response)))
+			request.WithContext(context.WithValue(request.Context(), "rip-response", ripResponse)))
 
 		// force all answers to be json for now
 		response.Header().Set("Content-Type", "application/json; charset=UTF-8")
@@ -187,6 +187,6 @@ func DocHandler(rip *rip) http.Handler {
 		}
 
 		resp["links"] = links
-		request.Context().Value("rip-response").(*Response).Data = resp
+		Response(request).Data = resp
 	})
 }

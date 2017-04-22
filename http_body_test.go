@@ -14,15 +14,15 @@ func TestHTTPJsonData(t *testing.T) {
 	result := ""
 	api := rip.NewRIP()
 	api.Path("foo").GET().Target(map[string]interface{}{}).Handler(http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-		data := req.Context().Value("rip-body")
+		data := rip.Body(req)
 		result = fmt.Sprintf("%#v", data)
 	}), "")
 	api.Path("foo").POST().Target(map[string]interface{}{}).Handler(http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-		data := req.Context().Value("rip-body")
+		data := rip.Body(req)
 		result = fmt.Sprintf("%#v", data)
 	}), "")
 	api.Path("foo").PUT().Target(map[string]interface{}{}).Handler(http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-		data := req.Context().Value("rip-body")
+		data := rip.Body(req)
 		result = fmt.Sprintf("%#v", data)
 	}), "")
 	handler, err := api.RootHandler()

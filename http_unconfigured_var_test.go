@@ -9,7 +9,7 @@ import (
 
 func TestHTTPUnconfiguredVarData(t *testing.T) {
 	varTryHandler := http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-		vars := req.Context().Value("rip-variables").(rip.Variables)
+		vars := rip.Vars(req)
 		for _, varr := range []string{"123", "boo", "  ", "-23_"} {
 			_, err := vars.GetVar(varr)
 			if err == nil {
