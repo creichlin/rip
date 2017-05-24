@@ -13,6 +13,7 @@ type Route struct {
 	path            []PathElement
 	parameters      []Parameter
 	queryParameters []*queryParameter
+	validation      Validation
 	handler         Handler
 	errors          []error
 }
@@ -117,3 +118,18 @@ func (r *Route) Template() string {
 func (r *Route) Method() string {
 	return r.method
 }
+
+func (r Route) Validate(validation interface{}) *Route {
+	r.validation = validation
+	println("Route Validate", validation)
+	return &r
+}
+
+/*
+	result, err := govalidator.ValidateStruct(settings)
+	if err != nil {
+		println("error: " + err.Error())
+	}
+	println(result)
+
+*/
