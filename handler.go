@@ -69,7 +69,7 @@ func createParseBodyHandler(nextHandler http.Handler) http.HandlerFunc {
 
 		data, err := parseData(contentType, route.target, request.Body)
 		if err != nil {
-			log.Printf("parse vars handler %v", err)
+			log.Printf("Failed to parse %v %v, %v", request.Method, request.URL, err)
 			response.WriteHeader(http.StatusBadRequest)
 			response.Write([]byte(fmt.Sprintf("Error parsing request body, %v", err))) // nolint: errcheck
 			return
