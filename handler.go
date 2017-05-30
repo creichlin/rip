@@ -129,7 +129,13 @@ func parseData(contentType string, targetType interface{}, data io.Reader) (inte
 			return nil, fmt.Errorf("Request does not accept a body, %v", targetType)
 		}
 
-		targetData := reflect.New(reflect.TypeOf(targetType)).Interface()
+		tType := reflect.TypeOf(targetType)
+		var targetData interface{}
+		if tType.Kind() == reflect.Map { // if we have a map, don't construct a pointer to it
+			targetData = reflect.New(tType)
+		} else {
+			targetData = reflect.New(tType).Interface()
+		}
 
 		decoder := json.NewDecoder(data)
 		err := decoder.Decode(&targetData)
