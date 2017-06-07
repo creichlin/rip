@@ -132,7 +132,7 @@ func parseData(contentType string, targetType interface{}, data io.Reader) (inte
 		tType := reflect.TypeOf(targetType)
 		var targetData interface{}
 		if tType.Kind() == reflect.Map { // if we have a map, don't construct a pointer to it
-			targetData = reflect.New(tType)
+			targetData = reflect.MakeMap(tType).Interface()
 		} else {
 			targetData = reflect.New(tType).Interface()
 		}
