@@ -25,6 +25,10 @@ func (rip *rip) routeErrors() []error {
 	return errors
 }
 
+func (rip *rip) AsRoute() *Route {
+	return &Route{rip: rip}
+}
+
 func (rip *rip) Param(name string, doc string) *Route {
 	return Route{rip: rip}.Param(name, doc)
 }

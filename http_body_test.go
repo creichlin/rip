@@ -40,13 +40,13 @@ func TestHTTPJsonData(t *testing.T) {
 		result      interface{}
 	}{
 		{"GET", "", "", `""`},
-		{"GET", "application/json", `{"foo": "bar"}`, `&map[string]interface {}{"foo":"bar"}`},
-		{"POST", "application/json", `{"foo": "bar"}`, `&map[string]interface {}{"foo":"bar"}`},
-		{"PUT", "application/json", `{"foo": "bar"}`, `&map[string]interface {}{"foo":"bar"}`},
-		{"GET", "application/vnd.x.y+json", `{"foo": "bar"}`, `&map[string]interface {}{"foo":"bar"}`},
-		{"GET", "application/json", `{"föö": "bär"}`, `&map[string]interface {}{"föö":"bär"}`},
-		{"GET", "application/json; charset=utf-8", `{"föö": "bär"}`, `&map[string]interface {}{"föö":"bär"}`},
-		{"GET", "application/json; charset=iso-8859-1", `{"föö": "bär"}`, `&map[string]interface {}{"föö":"bär"}`},
+		{"GET", "application/json", `{"foo": "bar"}`, `map[string]interface {}{"foo":"bar"}`},
+		{"POST", "application/json", `{"foo": "bar"}`, `map[string]interface {}{"foo":"bar"}`},
+		{"PUT", "application/json", `{"foo": "bar"}`, `map[string]interface {}{"foo":"bar"}`},
+		{"GET", "application/vnd.x.y+json", `{"foo": "bar"}`, `map[string]interface {}{"foo":"bar"}`},
+		{"GET", "application/json", `{"föö": "bär"}`, `map[string]interface {}{"föö":"bär"}`},
+		{"GET", "application/json; charset=utf-8", `{"föö": "bär"}`, `map[string]interface {}{"föö":"bär"}`},
+		{"GET", "application/json; charset=iso-8859-1", `{"föö": "bär"}`, `map[string]interface {}{"föö":"bär"}`},
 	}
 
 	for _, test := range tests {
