@@ -25,6 +25,13 @@ func (r *Route) setMethod(method string) {
 	r.method = method
 }
 
+func (r *Route) SetMethod(method string) {
+	if r.method != "" {
+		r.errors = append(r.errors, &RouteMethodError{r, r.method, method})
+	}
+	r.method = method
+}
+
 func (r Route) Param(name string, doc string) *Route {
 	qp := &queryParameter{
 		name: name,
